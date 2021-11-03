@@ -3,11 +3,20 @@
     [reagent.core :as r]
     [sci.core :as sci]))
 
-(defn remove-from-vector [vector i]
-  (vec (concat (subvec vector 0 i)
-               (subvec vector (inc i)))))
+(defn remove-from-vector [vector label]
+  (filter (fn [step]
+            (not= (step :label) label)) vector))
 
-#_(remove-from-vector [:a :b :c :d] 2)
+  #_(vec (concat (subvec vector 0 label)
+               (subvec vector (inc label))))
+
+#_(remove-from-vector 
+    [{:label "A"
+      :code "[10 15 26]"}
+     {:label "B"
+      :code "(map inc A)"}
+     {:label "C"
+      :code "(reduce + B)"}] "B")
 
 (defn insert-in-vector [vector i value]
   (vec (concat (subvec vector 0 i)
@@ -33,8 +42,8 @@
 (defn insert-step-before! [i]
   (swap! state update :steps insert-in-vector i {:code "(fn [i] i)"}))
 
-(defn remove-step! [i]
-  (swap! state update :steps remove-from-vector i))
+(defn remove-step! [label]
+  (swap! state update :steps remove-from-vector label))
 
 (defn edit-step-code! [label code]
   (swap! state update :steps (fn [steps]
@@ -115,7 +124,7 @@
            ""
            :else
            (pr-str result))]
-        [:button {:on-click (fn [_] #_(remove-step! index))} "x"]]
+        [:button {:on-click (fn [_] (remove-step! label))} "x"]]
        [:div
         [:button {:on-click (fn [_] #_(insert-step-before! (inc index)))} "+"]]])]))
 
