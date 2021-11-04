@@ -8,9 +8,6 @@
   (filter (fn [step]
             (not= (step :label) label)) vector))
 
-  #_(vec (concat (subvec vector 0 label)
-               (subvec vector (inc label))))
-
 #_(remove-from-vector 
     [{:label "A"
       :code "[10 15 26]"}
@@ -19,12 +16,28 @@
      {:label "C"
       :code "(reduce + B)"}] "B")
 
-(defn insert-in-vector [vector i value]
-  (vec (concat (subvec vector 0 i)
-               [value]
-               (subvec vector i))))
+(defn insert-before [coll label v]
+  (let [[before after]
+        (split-with (comp (complement #{label}) :label) coll)]
+    (-> (vec before)
+        (conj v)
+        (into after))))
 
-#_(insert-in-vector [:a :b :c] 0 :new)
+(defn new-label []
+  "X")
+
+#_(insert-before
+  [{:label "A"
+    :code "[10 15 26]"}
+   {:label "B"
+    :code "(map inc A)"}
+   {:label "C"
+    :code "(reduce + B)"}]
+  "B"
+  {
+   :label (new-label)
+   :code "(fn [i] i)"
+  })
 
 (defonce state
   (r/atom
@@ -39,8 +52,8 @@
              {:label "$E"
               :code "(/ $C $D)"}]}))
 
-(defn insert-step-before! [i]
-  (swap! state update :steps insert-in-vector i {:code "(fn [i] i)"}))
+(defn insert-step-before! [label]
+  (swap! state update :steps insert-before label {:code "(fn [i] i)"}))
 
 (defn remove-step! [label]
   (swap! state update :steps remove-from-vector label))
@@ -168,11 +181,10 @@
               :else
               (pr-str result))]]
           [:td
-           [:button {:on-click (fn [_] #_(remove-step! index))} "x"]]]
+           [:button {:on-click (fn [_] (remove-step! label))} "x"]]]
          [:tr
           [:td
            [:button {:on-click (fn [_] #_(insert-step-before! (inc index)))} "+"]]]])]])])
-
 
 ;; temporarily disabling step
 ;; moving a step
