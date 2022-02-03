@@ -25,11 +25,6 @@
         (conj v)
         (into after))))
 
-(defn next-label [label]
-  (clojure.core/char-array label))
-
-(next-label "X")
-
 (defn new-label [state]
   (->> (state :steps)
        (map (fn [s] (clojure.string/replace (s :label) #"\$" "")))
