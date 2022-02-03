@@ -4,6 +4,7 @@
     [reagent.core :as r]
     [clojure.string :as string]
     [sci.core :as sci]
+    [react-flow-renderer :default ReactFlow]
     [demo.toposort :as toposort]))
 
 (defn remove-from-vector [vector label]
@@ -202,7 +203,35 @@
 #_(sci/eval-string "(+ A 3)" {:namespaces {'user {'A 7}}})
 #_(calculate-results!)
 
+
+(def elements
+  [{
+    :id "1"
+    :type "input"
+    :data { :label "Input Node" }
+    :position { :x 250 :y 25 }
+   }
+   {
+    :id "2"
+    :data { :label "Default Node" }
+    :position { :x 100 :y 125 }
+   }
+   {
+    :id "3"
+    :type "output"
+    :data { :label "Output Node" }
+    :position { :x 250 :y 250 }
+   }
+   { :id "e1-2" :source "1" :target "2" :animated true }
+   { :id "e2-3" :source "2" :target "3" }
+   ])
+
 (defn app-view []
+  [:div {:style {:height 600 :border "solid 1px #DDDDDD"}}
+   [:> ReactFlow {:elements elements}]
+   ])
+
+#_(defn app-view []
   [:div
    [:button {:on-click (fn [] (re-order!))} "Re-order"]
    (let [results (calculate-results! (@state :steps))]
