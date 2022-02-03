@@ -5,6 +5,7 @@
     [clojure.string :as string]
     [sci.core :as sci]
     [react-flow-renderer :default ReactFlow]
+    [react-flow-renderer :as flow]
     [demo.toposort :as toposort]))
 
 (defn remove-from-vector [vector label]
@@ -228,8 +229,8 @@
 
 (defn app-view []
   [:div {:style {:height 600 :border "solid 1px #DDDDDD"}}
-   [:> ReactFlow {:elements elements}]
-   ])
+   [:> ReactFlow {:elements elements}
+    [:> flow/Background]]])
 
 #_(defn app-view []
   [:div
