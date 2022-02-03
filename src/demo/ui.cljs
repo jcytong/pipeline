@@ -2,6 +2,7 @@
  (:require
     [clojure.core :as core]
     [reagent.core :as r]
+    [clojure.string :as string]
     [sci.core :as sci]
     [demo.toposort :as toposort]))
 
@@ -60,13 +61,56 @@
              {:label "$E"
               :code "(/ $C $D)"}]}))
 
-(new-label @state)
+(defn normalize-label
+  "Returns normalize label or nil if can't normalize"
+  [s]
+  (let [s (-> s
+              (string/upper-case)
+              (string/replace #"[^A-Z]" ""))]
+   (when-not (string/blank? s)
+    (str "$" s))))
+
+#_(normalize-label "e % 2")
+
+(defn label-exists? [steps label]
+  (some (fn [step] (= (step :label) label)) steps))
+
+(defn rename-step! [old-label new-label]
+  (when-let [new-label (normalize-label new-label)]
+   (swap! state update :steps
+     (fn [steps]
+       (if (label-exists? steps new-label)
+        steps
+        (map (fn [step]
+              (-> step
+                  (update :code (fn [code] (string/replace code #"\$[A-Z]+"
+                                                           (fn [label]
+                                                             (if (= label old-label)
+                                                              new-label
+                                                              label)))))
+                  (update :label (fn [label] (if (= label old-label)
+                                              new-label
+                                              label)))))
+             steps))))))
+
+(defn generate-new-label [steps]
+  (let [letters (mapv char (range (.charCodeAt "A") (.charCodeAt "Z")))
+        new-label (apply str "$" (repeatedly 3 #(rand-nth letters)))]
+    (if (label-exists? steps new-label)
+     (recur steps)
+     new-label)))
 
 (defn insert-step-before! [label]
-  (swap! state update :steps insert-before label {:label (new-label nil) :code "(fn [i] i)"}))
+  (swap! state update :steps
+    (fn [steps]
+      (let [[before after] (split-with (fn [step] (not= (step :label) label)) steps)]
+       (concat before
+               [{:label (generate-new-label steps)
+                 :code "nil"}]
+               after)))))
 
 (defn remove-step! [label]
-  (swap! state update :steps remove-from-vector label))
+  (swap! state update :steps (fn [steps] (remove (fn [step] (= (step :label) label)) steps))))
 
 (defn edit-step-code! [label code]
   (swap! state update :steps (fn [steps]
@@ -78,7 +122,9 @@
                                     steps))))
 
 
-(defn analyze [steps]
+(defn analyze
+  "For each step, identifies which steps it depends on"
+  [steps]
   (->> steps
        (map (fn [step]
               [(:label step) (set (re-seq #"\$[A-Z]+" (:code step)))]))
@@ -167,15 +213,15 @@
    (let [results (calculate-results! (@state :steps))]
     [:table
      [:tbody
-      [:tr
-       [:td
-        [:button {:on-click (fn [_] (insert-step-before! 0))} "+"]]]
       (for [{:keys [label code]} (:steps @state)
             :let [result (get results (symbol label) ::NO-RESULT)]]
         ^{:key label}
         [:<>
+         [:tr
+          [:td
+           [:button {:on-click (fn [_] (insert-step-before! label))} "+"]]]
          [:tr.step
-          [:td label]
+          [:td [:button {:on-click (fn [] (rename-step! label (js/prompt "What to rename?")))} label]]
           [:td
            [:textarea {:value code
                        :on-change (fn [e]
@@ -192,12 +238,12 @@
               :else
               (pr-str result))]]
           [:td
-           [:button {:on-click (fn [_] (remove-step! label))} "x"]]]
-         [:tr
-          [:td
-           [:button {:on-click (fn [_] (insert-step-before! label))} "+"]]]])]])])
+           [:button {:on-click (fn [_] (remove-step! label))} "x"]]]])
+      [:tr
+       [:td
+        [:button {:on-click (fn [_] (insert-step-before! nil))} "+"]]]]])])
 
-;; temporarily disabling step
-;; moving a step
+;; change :label and :code to :step/label and :step/code
+;; maybe explore using specter
 ;; code autoformatting
 ;; uploading a csv
