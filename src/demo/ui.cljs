@@ -1,5 +1,6 @@
 (ns demo.ui
  (:require
+    [clojure.core :as core]
     [reagent.core :as r]
     [sci.core :as sci]
     [demo.toposort :as toposort]))
@@ -23,8 +24,17 @@
         (conj v)
         (into after))))
 
-(defn new-label []
-  "X")
+(defn next-label [label]
+  (clojure.core/char-array label))
+
+(next-label "X")
+
+(defn new-label [state]
+  (->> (state :steps)
+       (map (fn [s] (clojure.string/replace (s :label) #"\$" "")))
+       (apply max)))
+       
+
 
 #_(insert-before
   [{:label "A"
@@ -33,11 +43,9 @@
     :code "(map inc A)"}
    {:label "C"
     :code "(reduce + B)"}]
-  "B"
-  {
-   :label (new-label)
-   :code "(fn [i] i)"
-  })
+   "B"
+   {:label (new-label)
+    :code "(fn [i] i)"})
 
 (defonce state
   (r/atom
@@ -52,8 +60,10 @@
              {:label "$E"
               :code "(/ $C $D)"}]}))
 
+(new-label @state)
+
 (defn insert-step-before! [label]
-  (swap! state update :steps insert-before label {:code "(fn [i] i)"}))
+  (swap! state update :steps insert-before label {:label (new-label nil) :code "(fn [i] i)"}))
 
 (defn remove-step! [label]
   (swap! state update :steps remove-from-vector label))
@@ -113,6 +123,7 @@
   (swap! state update :steps analyze-and-reorder))
 
 (defn calculate-results! [steps]
+  (pr steps)
   (try
    (loop [context {}
           remaining-steps (analyze-and-reorder steps)]
@@ -184,7 +195,7 @@
            [:button {:on-click (fn [_] (remove-step! label))} "x"]]]
          [:tr
           [:td
-           [:button {:on-click (fn [_] #_(insert-step-before! (inc index)))} "+"]]]])]])])
+           [:button {:on-click (fn [_] (insert-step-before! label))} "+"]]]])]])])
 
 ;; temporarily disabling step
 ;; moving a step
